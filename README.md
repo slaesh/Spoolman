@@ -36,13 +36,52 @@ Spoolman is still relatively new, so support isn't widespread yet, but it's bein
   * ✔️ KlipperScreen
   * ✔️ Mainsail
 * ✖️ Octoprint - A plugin is in progress: [OctoPrint-Spoolman](https://github.com/mkevenaar/OctoPrint-Spoolman)
+* ✔️ Home Assistant integration (https://github.com/Disane87/spoolman-homeassistant)
 
 ## Installation
 Spoolman can interact with any of the following databases: SQLite, PostgreSQL, MySQL, MariaDB, CockroachDB.
 By default, SQLite is used which is a simple no-install database solution that saves to a single .db file located in the server's user directory.
 
+Spoolman can be installed in two ways, either standalone on your machine or using Docker. If you already have Docker installed, it's recommended to use that.
+
+### Standalone
+This installation guide assumes you are using a Debian-based Linux distribution such as Ubuntu or Raspberry Pi OS. If you are using another distribution, please look inside the bash scripts to see what commands are being run and adapt them to your distribution.
+
+Copy-paste the entire below command and run it on your machine to install Spoolman.
+```bash
+sudo apt-get update && \
+sudo apt-get install -y curl jq && \
+mkdir -p ./Spoolman && \
+source_url=$(curl -s https://api.github.com/repos/Donkie/Spoolman/releases/latest | jq -r ".tarball_url") && \
+curl -sSL $source_url | tar -xz --strip-components=1 -C ./Spoolman && \
+cd ./Spoolman && \
+bash ./scripts/install_debian.sh
+```
+
+#### Updating
+Updating Spoolman is quite simple. If you use the default database type, SQLite, it is stored outside of the installation folder (in `~/.local/share/spoolman`), so you will not lose any data by moving to a new installation folder.
+
+Copy-paste the entire below commands and run it on your machine to update Spoolman to the latest version. The command assumes your existing Spoolman folder is named `Spoolman` and is located in your current directory.
+```bash
+# Stop and disable the old Spoolman service
+sudo systemctl stop Spoolman
+sudo systemctl disable Spoolman
+systemctl --user stop Spoolman
+systemctl --user disable Spoolman
+
+# Download and install the new version
+mv Spoolman Spoolman_old && \
+mkdir -p ./Spoolman && \
+source_url=$(curl -s https://api.github.com/repos/Donkie/Spoolman/releases/latest | jq -r ".tarball_url") && \
+curl -sSL $source_url | tar -xz --strip-components=1 -C ./Spoolman && \
+cp Spoolman_old/.env Spoolman/.env && \
+cd ./Spoolman && \
+bash ./scripts/install_debian.sh && \
+rm -rf ../Spoolman_old
+```
+
 ### Using Docker
-The easiest way to run Spoolman is using Docker. Docker is a platform for developing, shipping, and running applications in containers. Containers are lightweight, portable, and self-contained environments that can run on any machine with Docker installed.
+You can also run Spoolman using Docker. Docker is a platform for developing, shipping, and running applications in containers. Containers are lightweight, portable, and self-contained environments that can run on any machine with Docker installed.
 
 To install Docker on your machine, follow the instructions for your operating system on the [Docker website](https://docs.docker.com/engine/install/). Docker also includes the docker-compose tool which lets you configure the container deployment in a simple yaml file, without having to remember all the command line options. Note: older versions of docker-compose require you to have a dash (`-`) in the following commands, like `docker-compose` instead of `docker compose`.
 
@@ -66,7 +105,11 @@ services:
 ```
 Once you have it up and running, you can access the web UI by browsing to `http://your.ip:7912`. Make sure that the data folder you created now contains a `spoolman.db` file. If you cannot find this file in your machine, then **your data will be lost** every time you update Spoolman.
 
+#### Updating
 If a new version of Spoolman has been released, you can update to it by first browsing to the directory where you have the `docker-compose.yml` file and then running `docker compose pull && docker compose up -d`.
+
+### Environment variables
+These are either set in the .env file if you use the standalone installation, or in the docker-compose.yml if you use Docker.
 
 If you want to connect with an external database instead, specify the `SPOOLMAN_DB_*` environment variables from the table below.
 
@@ -89,6 +132,15 @@ If you want to enable basic-auth mechanism, specify the `BASIC_AUTH_*` environme
 | ------------------------- | ---------------------------------------------------------------------------------------------- |
 | BASIC_AUTH_USERNAME       | Username used to authenticate                                                                  |
 | BASIC_AUTH_PASSWORD       | Password used to authenticate                                                                  |
+
+## Frequently Asked Questions (FAQs)
+### QR Code Does not work on HTTP / The page is not served over HTTPS
+This is a limitation of the browsers. Browsers require a secure connection to the server to enable HTTPS. This is not a limitation of Spoolman. For more information read this [blog](https://blog.mozilla.org/webrtc/camera-microphone-require-https-in-firefox-68/) from Mozilla.
+
+You can put Spoolman behind a reverse proxy like Caddy or Nginx to enable HTTPS. See for example [this guide](https://caddyserver.com/docs/quick-starts/reverse-proxy) for Caddy.
+
+### Can Spoolman be translated into my language?
+Yes, head over to [Weblate](https://hosted.weblate.org/projects/spoolman/) to start the Translation
 
 ## Development
 ### Client

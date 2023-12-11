@@ -27,7 +27,8 @@
         "showArchived": "显示存档",
         "notAccessTitle": "您没有访问权限",
         "hideColumns": "隐藏列",
-        "clearFilters": "清除筛选器"
+        "clearFilters": "清除筛选器",
+        "saveAndAdd": "保存并添加"
     },
     "warnWhenUnsavedChanges": "您确定要离开吗？您有未保存的更改。",
     "notifications": {
@@ -167,7 +168,8 @@
             "archive": "您确定要存档此料盘吗？"
         },
         "form": {
-            "new_location_prompt": "输入一个新位置"
+            "new_location_prompt": "输入一个新位置",
+            "spool_updated": "自您打开此页面以来，此料盘已被其他人/事物更新。保存将覆盖这些更改！"
         }
     },
     "filament": {
@@ -188,7 +190,8 @@
             "comment": "备注",
             "settings_extruder_temp": "挤出头温度",
             "settings_bed_temp": "热床温度",
-            "color_hex": "颜色"
+            "color_hex": "颜色",
+            "spools": "显示料盘"
         },
         "fields_help": {
             "name": "耗材名称，用于区分来自同一供应商的不同耗材类型。例如包含颜色信息。",
@@ -205,6 +208,9 @@
             "list": "耗材列表",
             "show": "查看耗材",
             "show_title": "[耗材 #{{id}}] {{name}}"
+        },
+        "form": {
+            "filament_updated": "自您打开此页面以来，此耗材已被其他人/事物更新。保存将覆盖这些更改！"
         }
     },
     "vendor": {
@@ -222,6 +228,9 @@
             "list": "供应商列表",
             "show": "查看供应商",
             "show_title": "[供应商 #{{id}}] {{name}}"
+        },
+        "form": {
+            "vendor_updated": "自您打开此页面以来，此供应商已被其他人/事物更新。保存将覆盖这些更改！"
         }
     },
     "table": {

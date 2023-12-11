@@ -2,6 +2,8 @@
 
 import logging
 import os
+import subprocess
+import sys
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -10,6 +12,8 @@ from urllib import parse
 
 import pkg_resources
 from platformdirs import user_data_dir
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseType(Enum):
@@ -222,9 +226,28 @@ def get_data_dir() -> Path:
     Returns:
         Path: The data directory.
     """
-    data_dir = Path(user_data_dir("spoolman"))
+    env_data_dir = os.getenv("SPOOLMAN_DIR_DATA")
+    if env_data_dir is not None:
+        data_dir = Path(env_data_dir)
+    else:
+        data_dir = Path(user_data_dir("spoolman"))
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir
+
+
+def get_logs_dir() -> Path:
+    """Get the logs directory.
+
+    Returns:
+        Path: The logs directory.
+    """
+    env_logs_dir = os.getenv("SPOOLMAN_DIR_LOGS")
+    if env_logs_dir is not None:
+        logs_dir = Path(env_logs_dir)
+    else:
+        logs_dir = get_data_dir()
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    return logs_dir
 
 
 def get_backups_dir() -> Path:
@@ -233,8 +256,11 @@ def get_backups_dir() -> Path:
     Returns:
         Path: The backups directory.
     """
-    data_dir = get_data_dir()
-    backups_dir = data_dir.joinpath("backups")
+    env_backups_dir = os.getenv("SPOOLMAN_DIR_BACKUPS")
+    if env_backups_dir is not None:
+        backups_dir = Path(env_backups_dir)
+    else:
+        backups_dir = get_data_dir().joinpath("backups")
     backups_dir.mkdir(parents=True, exist_ok=True)
     return backups_dir
 
@@ -299,3 +325,66 @@ def basic_auth_activated() -> bool:
         bool: activated.
     """
     return bool(get_basic_auth_username()) and bool(get_basic_auth_password())
+
+
+def can_write_to_data_dir() -> bool:
+    """Check if the data directory is writable."""
+    try:
+        test_file = get_data_dir().joinpath("test.txt")
+        test_file.touch()
+        test_file.unlink()
+    except:  # noqa: E722
+        return False
+    return True
+
+
+def chown_dir(path: str) -> bool:
+    """Try to chown the data directory to the current user."""
+    if os.name == "nt":
+        return False
+
+    try:
+        uid = os.getuid()
+        gid = os.getgid()
+        subprocess.run(["chown", "-R", f"{uid}:{gid}", path], check=True)  # noqa: S603, S607
+    except:  # noqa: E722
+        return False
+    return True
+
+
+def check_write_permissions() -> None:
+    """Verify that the data directory is writable, crash with a helpful error message if not."""
+    if not can_write_to_data_dir():
+        # If windows we can't fix the permissions, so just crash
+        if os.name == "nt":
+            logger.error("Data directory is not writable.")
+            sys.exit(1)
+
+        # Try fixing it by chowning the directory to the current user
+        logger.warning("Data directory is not writable, trying to fix it...")
+        if not chown_dir(get_data_dir()) or not can_write_to_data_dir():
+            uid = os.getuid()
+            gid = os.getgid()
+
+            logger.error(
+                (
+                    "Data directory is not writable. "
+                    'Please run "sudo chown -R %s:%s /path/to/spoolman/datadir" on the host OS.'
+                ),
+                uid,
+                gid,
+            )
+            sys.exit(1)
+
+
+def is_docker() -> bool:
+    """Check if we are running in a docker container."""
+    return Path("/.dockerenv").exists()
+
+
+def is_data_dir_mounted() -> bool:
+    """Check if the data directory is mounted as a shfs."""
+    # "mount" will give us a list of all mounted filesystems
+    mounts = subprocess.run("mount", check=True, stdout=subprocess.PIPE, text=True)  # noqa: S603, S607
+    data_dir = str(get_data_dir().resolve())
+    return any(data_dir in line for line in mounts.stdout.splitlines())
